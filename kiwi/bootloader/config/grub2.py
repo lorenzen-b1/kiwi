@@ -21,6 +21,7 @@ import glob
 from collections import OrderedDict
 
 # project
+from kiwi.mount_manager import MountManager
 from kiwi.bootloader.config.base import BootLoaderConfigBase
 from kiwi.bootloader.template.grub2 import BootLoaderTemplateGrub2
 from kiwi.command import Command
@@ -218,6 +219,63 @@ class BootLoaderConfigGrub2(BootLoaderConfigBase):
                 log.info('--> {0}:{1}'.format(key, value))
                 sysconfig_bootloader[key] = value
             sysconfig_bootloader.write()
+
+    def setup_disk_image_native_config(
+        self, root_device, boot_device, volumes
+    ):
+        # FIXME
+        volumes_mount = []
+        root_mount = MountManager(
+            device=root_device
+        )
+        boot_mount = MountManager(
+            device=boot_device,
+            mountpoint=root_mount.mountpoint + '/boot'
+        )
+
+        root_mount.mount()
+
+        if not root_mount.device == boot_mount.device:
+            boot_mount.mount()
+
+        if volumes:
+            for volume_path in Path.sort_by_hierarchy(
+                sorted(volumes.keys())
+            ):
+                volume_mount = MountManager(
+                    device=volumes[volume_path]['volume_device'],
+                    mountpoint=root_mount.mountpoint + '/' + volume_path
+                )
+                volumes_mount.append(volume_mount)
+                volume_mount.mount(
+                    options=[self.volumes[volume_path]['volume_options']]
+                )
+
+        device_mount = MountManager(
+            device='/dev',
+            mountpoint=root_mount.mountpoint + '/dev'
+        )
+
+        proc_mount = MountManager(
+            device='/proc',
+            mountpoint=root_mount.mountpoint + '/proc'
+        )
+        device_mount.bind_mount()
+        proc_mount.bind_mount()
+
+        Command.run(
+            [
+                'chroot', root_mount.mountpoint,
+                'grub2-mkconfig', '-o', 'boot/grub2/grub.cfg'
+            ]
+        )
+
+        proc_mount.umount()
+        device_mount.umount()
+        for volume_mount in reversed(volumes_mount):
+            volume_mount.umount()
+        boot_mount.umount()
+        root_mount.umount()
 
     def setup_disk_image_config(
         self, boot_uuid, root_uuid, hypervisor='xen.gz',

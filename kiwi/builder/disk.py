@@ -995,6 +995,13 @@ class DiskBuilder:
             if bootloader.install_required():
                 bootloader.install()
 
+            # FIXME
+            self.bootloader_config.setup_disk_image_native_config(
+                custom_install_arguments.get('root_device'),
+                custom_install_arguments.get('boot_device'),
+                custom_install_arguments.get('system_volumes')
+            )
+
         self.system_setup.call_edit_boot_install_script(
             self.diskname, boot_device.get_device()
         )
