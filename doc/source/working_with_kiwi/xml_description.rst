@@ -464,7 +464,7 @@ attributes. The `description` is only present for documentation purposes,
 `name` on the other hand is used to instruct KIWI which profile to build
 via the command line. Additionally, one can provide the boolean attribute
 `import`, which defines whether this profile should be used by default when
-KIWI is invoked via the command line.
+KIWI is invoked via the command line (e.g. ``.
 
 A profile inherits the default settings which do not belong to any
 profile. It applies only to elements that contain the profile in their
@@ -486,7 +486,7 @@ Profiles can furthermore inherit settings from another profile via the
    <profiles>
        <profile name="VM" description="virtual machine"/>
        <profile name="QEMU" description="virtual machine for QEMU">
-           <requires>VM</requires>
+           <requires profile="VM"/>
        </profile>
    </profiles>
 
